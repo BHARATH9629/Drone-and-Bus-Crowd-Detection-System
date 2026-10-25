@@ -1,0 +1,16 @@
+{
+  "name": "drone-and-bus-crowd-detection-system",
+  "version": "1.0.0",
+  "description": "Smart Drone and Bus Crowd Detection System with YOLOv8, ESP32-CAM / IP Camera, MySQL, Blynk IoT, and Groq AI Assistant",
+  "main": "drone_dashboard/server.js",
+  "scripts": {
+    "start": "node drone_dashboard/server.js",
+    "dashboard": "node drone_dashboard/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.9",
+    "express": "^4.18.2",
+    "mysql2": "^3.24.6"
+  }
+}

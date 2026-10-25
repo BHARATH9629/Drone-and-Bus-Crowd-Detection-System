@@ -1,0 +1,41 @@
+# Environment variables & secrets (CRITICAL: NEVER COMMIT)
+.env
+*.env
+.env.local
+.env.*.local
+
+# Dependency directories
+node_modules/
+package-lock.json
+
+# Python virtual environment & runtime files
+venv/
+.venv/
+env/
+Include/
+Lib/
+Scripts/
+share/
+pyvenv.cfg
+__pycache__/
+*.py[cod]
+*$py.class
+*.dist/
+.dist/
+
+# Operating system files
+Thumbs.db
+[Dd]esktop.ini
+.DS_Store
+
+# Editor & IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Junction / local symlink
+bus_dashboard

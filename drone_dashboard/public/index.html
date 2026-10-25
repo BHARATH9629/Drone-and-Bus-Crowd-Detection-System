@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bus Crowd Detection Dashboard</title>
+<style>
+  :root {
+    --bg: #0b1117;
+    --panel: #111a24;
+    --panel-2: #0f1720;
+    --border: #223143;
+    --text: #d7e1ec;
+    --muted: #7d8da0;
+    --green: #20d489;
+    --yellow: #ffd23f;
+    --red: #ff5b5b;
+    --blue: #4bb3fd;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    padding: 20px;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h1 {
+    margin: 0;
+    color: var(--blue);
+    font-size: 1.35rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  #clock, .mono { font-family: Consolas, "Courier New", monospace; }
+
+  #conn-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  #conn-dot.live {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .alert {
+    display: none;
+    margin: 18px 0 0;
+    padding: 14px;
+    border: 1px solid var(--red);
+    color: #fff;
+    background: rgba(255, 91, 91, 0.22);
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .stream {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .section-label {
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  #stream-frame {
+    display: block;
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    background: #000;
+    border-radius: 6px;
+  }
+
+  .stream-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  input, button {
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font: inherit;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 10px 12px;
+  }
+
+  button {
+    background: var(--blue);
+    color: #06101a;
+    padding: 10px 16px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    min-height: 142px;
+  }
+
+  .value {
+    font-size: 3rem;
+    line-height: 1;
+    font-weight: 900;
+  }
+
+  .badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  .green { color: var(--green); border: 1px solid var(--green); background: rgba(32, 212, 137, 0.12); }
+  .yellow { color: var(--yellow); border: 1px solid var(--yellow); background: rgba(255, 210, 63, 0.12); }
+  .red { color: var(--red); border: 1px solid var(--red); background: rgba(255, 91, 91, 0.12); }
+  .blue { color: var(--blue); border: 1px solid var(--blue); background: rgba(75, 179, 253, 0.12); }
+
+  .sub {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .objects {
+    color: var(--text);
+    font-size: 1.15rem;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.86rem;
+  }
+
+  th, td {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.68rem;
+  }
+
+  .table-wrap {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  .chat-toggle {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 1px solid var(--blue);
+    background: var(--blue);
+    color: #06101a;
+    font-weight: 900;
+    font-size: 1.35rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    z-index: 20;
+  }
+
+  .chat-panel {
+    position: fixed;
+    right: 22px;
+    bottom: 88px;
+    width: min(380px, calc(100vw - 32px));
+    height: 500px;
+    max-height: calc(100vh - 120px);
+    display: none;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+    z-index: 20;
+  }
+
+  .chat-panel.open { display: flex; }
+
+  .chat-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--blue);
+    font-weight: 800;
+  }
+
+  .chat-head button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+  }
+
+  .chat-messages {
+    flex: 1;
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .msg {
+    padding: 10px 12px;
+    border-radius: 8px;
+    line-height: 1.42;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+  }
+
+  .msg.user {
+    align-self: flex-end;
+    background: rgba(75, 179, 253, 0.14);
+    border: 1px solid rgba(75, 179, 253, 0.45);
+  }
+
+  .msg.bot {
+    align-self: flex-start;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+  }
+
+  .chat-form {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .chat-form input { padding: 10px; }
+  .chat-form button { padding: 10px 12px; }
+
+  @media (max-width: 640px) {
+    body { padding: 14px; }
+    header { align-items: flex-start; flex-direction: column; }
+    .stream-controls { flex-direction: column; }
+    button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1><span id="conn-dot"></span>Bus Crowd Detection Dashboard</h1>
+  <span id="clock" class="mono">--:--:--</span>
+</header>
+
+<div id="alert-banner" class="alert">Crowd danger detected in bus</div>
+
+<section class="stream">
+  <p class="section-label">Phone IP Camera Live Stream</p>
+  <img id="stream-frame" src="" alt="Phone IP camera stream" />
+  <div class="stream-controls">
+    <input id="stream-url-input" type="text" value="http://192.168.1.5:8080/video" placeholder="http://PHONE_IP:8080/video" />
+    <button type="button" onclick="setStream()">Connect</button>
+  </div>
+</section>
+
+<main class="grid">
+  <section class="card">
+    <p class="section-label">People Detected</p>
+    <div class="value" id="crowd-count">0</div>
+    <span id="crowd-badge" class="badge green">CLEAR</span>
+    <div class="sub" id="crowd-sub">Bus is clear</div>
+  </section>
+
+  <section class="card">
+    <p class="section-label">Objects Detected</p>
+    <div class="objects" id="detected-objects">none</div>
+    <div class="sub">Name and count of objects currently visible</div>
+  </section>
+
+  <section class="card">
+    <p class="section-label">GPS Location</p>
+    <div class="mono">Lat: <span id="gps-lat">--</span></div>
+    <div class="mono">Lng: <span id="gps-lng">--</span></div>
+    <div class="sub" id="gps-address">Waiting for browser GPS permission</div>
+    <div class="sub mono" id="gps-acc">Accuracy: --</div>
+  </section>
+</main>
+
+<div class="table-wrap">
+  <p class="section-label">Recent Bus Samples</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>People</th>
+        <th>Status</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+    <tbody id="logs-body">
+      <tr><td colspan="4">No samples yet</td></tr>
+    </tbody>
+  </table>
+  <div class="sub mono" id="last-update">Last update: -- | Sample interval: 1 second</div>
+</div>
+
+<button class="chat-toggle" type="button" onclick="toggleChat()">AI</button>
+<section class="chat-panel" id="chat-panel">
+  <div class="chat-head">
+    <span>Bus AI Assistant</span>
+    <button type="button" onclick="toggleChat()">x</button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg bot">Ask about crowd count, average people, location, database, Blynk pins, or general bus travel questions.</div>
+  </div>
+  <form class="chat-form" onsubmit="sendChat(event)">
+    <input id="chat-input" type="text" placeholder="Ask about this project or buses..." autocomplete="off" />
+    <button type="submit">Send</button>
+  </form>
+</section>
+
+<script>
+const GPS_POST_INTERVAL_MS = 1000;
+const LOG_REFRESH_INTERVAL_MS = 1000;
+
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+}, 1000);
+
+function setStream() {
+  const url = document.getElementById('stream-url-input').value.trim();
+  document.getElementById('stream-frame').src = url;
+}
+
+window.addEventListener('load', setStream);
+
+let latestGps = {
+  latitude: null,
+  longitude: null,
+  address: '',
+  accuracy: null,
+};
+
+async function postGps() {
+  if (latestGps.latitude === null || latestGps.longitude === null) return;
+  try {
+    await fetch('/api/gps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(latestGps),
+    });
+  } catch (_) {}
+}
+
+async function fetchAddress(lat, lng) {
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+    const data = await response.json();
+    latestGps.address = data.display_name || 'Address not found';
+  } catch (_) {
+    latestGps.address = 'Address lookup failed';
+  }
+  document.getElementById('gps-address').textContent = latestGps.address;
+  postGps();
+}
+
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(pos => {
+    const lat = Number(pos.coords.latitude.toFixed(6));
+    const lng = Number(pos.coords.longitude.toFixed(6));
+    const acc = Number(pos.coords.accuracy.toFixed(0));
+    latestGps = { ...latestGps, latitude: lat, longitude: lng, accuracy: acc };
+    document.getElementById('gps-lat').textContent = lat;
+    document.getElementById('gps-lng').textContent = lng;
+    document.getElementById('gps-acc').textContent = `Accuracy: +/-${acc}m`;
+    fetchAddress(lat, lng);
+  }, () => {
+    document.getElementById('gps-address').textContent = 'GPS not available. Allow location access.';
+  }, { enableHighAccuracy: true });
+} else {
+  document.getElementById('gps-address').textContent = 'Geolocation is not supported.';
+}
+
+setInterval(postGps, GPS_POST_INTERVAL_MS);
+
+function updateCrowd(count) {
+  const badge = document.getElementById('crowd-badge');
+  const countEl = document.getElementById('crowd-count');
+  const sub = document.getElementById('crowd-sub');
+  badge.className = 'badge';
+
+  if (count === 0) {
+    badge.classList.add('green');
+    badge.textContent = 'CLEAR';
+    countEl.style.color = 'var(--green)';
+    sub.textContent = 'Bus is clear';
+  } else if (count < 5) {
+    badge.classList.add('yellow');
+    badge.textContent = 'LOW';
+    countEl.style.color = 'var(--yellow)';
+    sub.textContent = 'Low crowd in bus';
+  } else if (count < 10) {
+    badge.classList.add('red');
+    badge.textContent = 'WARNING';
+    countEl.style.color = 'var(--red)';
+    sub.textContent = 'Bus is getting crowded';
+  } else {
+    badge.classList.add('red');
+    badge.textContent = 'DANGER';
+    countEl.style.color = 'var(--red)';
+    sub.textContent = 'Crowd danger in bus';
+  }
+}
+
+function updateUI(data) {
+  const count = data.crowd_count ?? 0;
+  document.getElementById('crowd-count').textContent = count;
+  document.getElementById('detected-objects').textContent = data.detected_objects || 'none';
+  document.getElementById('conn-dot').className = 'live';
+  document.getElementById('alert-banner').style.display = count >= 10 ? 'block' : 'none';
+  updateCrowd(count);
+
+  const interval = data.sample_interval_seconds ?? 1;
+  document.getElementById('last-update').textContent =
+    `Last update: ${new Date(data.timestamp).toLocaleTimeString()} | Sample interval: ${interval} seconds`;
+}
+
+function formatLocation(row) {
+  if (row.latitude === null || row.longitude === null) return row.address || '--';
+  return `${row.latitude}, ${row.longitude}`;
+}
+
+async function pollDetection() {
+  try {
+    const response = await fetch('/api/detection');
+    updateUI(await response.json());
+  } catch (_) {
+    document.getElementById('conn-dot').className = '';
+  }
+}
+
+async function pollLogs() {
+  try {
+    const response = await fetch('/api/logs');
+    const rows = await response.json();
+    const body = document.getElementById('logs-body');
+    if (!Array.isArray(rows) || rows.length === 0) {
+      body.innerHTML = '<tr><td colspan="4">No samples yet</td></tr>';
+      return;
+    }
+    body.innerHTML = rows.slice(0, 10).map(row => `
+      <tr>
+        <td class="mono">${new Date(row.created_at).toLocaleTimeString()}</td>
+        <td>${row.people_count}</td>
+        <td>${row.crowd_status}</td>
+        <td>${formatLocation(row)}</td>
+      </tr>
+    `).join('');
+  } catch (_) {}
+}
+
+function toggleChat() {
+  document.getElementById('chat-panel').classList.toggle('open');
+}
+
+function addChatMessage(text, sender) {
+  const messages = document.getElementById('chat-messages');
+  const node = document.createElement('div');
+  node.className = `msg ${sender}`;
+  node.textContent = text;
+  messages.appendChild(node);
+  messages.scrollTop = messages.scrollHeight;
+  return node;
+}
+
+async function sendChat(event) {
+  event.preventDefault();
+  const input = document.getElementById('chat-input');
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = '';
+  addChatMessage(message, 'user');
+  const pending = addChatMessage('Thinking...', 'bot');
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    const data = await response.json();
+    pending.textContent = data.reply || data.error || 'No response.';
+  } catch (_) {
+    pending.textContent = 'Chatbot connection failed. Check the server and Groq API key.';
+  }
+}
+
+pollDetection();
+pollLogs();
+setInterval(pollDetection, 1000);
+setInterval(pollLogs, LOG_REFRESH_INTERVAL_MS);
+</script>
+</body>
+</html>
